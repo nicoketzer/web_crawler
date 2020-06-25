@@ -5,110 +5,7 @@ include("var.php");
 $options = array('http'=>array('method'=>"GET", 'headers'=>"User-Agent: web_crawler_by_nicoketzer/github\n"));
 // Create the stream context.
 $context = stream_context_create($options);
-function crawler(){
-    //SQL Befehl der alle Datens&auml;tze w&auml;hlt die noch nicht ge-crawlt wurde
-    $sql = "SELECT * FROM `search` WHERE `indexed_last` = '0'";
-    //Neues Mysqli-Objekt erstellen
-    $mysqli = new_mysqli();
-    //R&uuml;ckgabe des Befehls auswerten und in Array speichern
-    $res = sql_result_to_array(start_sql($mysqli,$sql));
-    //Datenbank-Verbindung schlieﬂen
-    close_mysqli($mysqli);
-    //&Uuml;berpr&uuml;fen ob ein Datensatz existiert der noch nicht gecrawlt wurde
-    if(isset($res[0])){
-        //Wenn hier rein gegangen wird dann existiert ein Element das noch nicht gecrawlt wird
-        
-        //Random ein Element aus der Menge nehmen
-        $crawl_el = $res[array_rand($res)];
-        //URL von Hex nach Bin umwandeln
-        $url = hex2bin($crawl_el["url"]);
-        //Alle URL&apos;s die bei dem gecrawlten URL gefunden wurden als R&uuml;ckgabe im Array speichern
-        $found_urls = crawl($url);
-        //SQL-Befehl der den gerade ge-crawlten Datensatz updatet
-        $sql = "UPDATE `search` SET `indexed_last`='" . time() . "' WHERE `url` = '" . $crawl_el["url"] . "'";
-        //Neuse Mysqli-Objekt erstellen
-        $mysqli = new_mysqli();
-        //Updaten des Verwendeten URL&apos;s durch ausf&uuml;hren des Befehls
-        start_sql($mysqli,$sql);
-        //Speichern der gefundenen URL&apos;s
-        foreach($found_urls as $push_url){
-            //&Uuml;berpr&uuml;fung ob schon vorhanden
-            $sql = "SELECT * FROM `search` WHERE `url` = '" . bin2hex($push_url) . "'";
-            //R&uuml;ckgabe auswerten
-            $res = sql_result_to_array(start_sql($mysqli,$sql));
-            //Entscheidung treffen
-            if(!isset($res[0]["url"])){
-                //Wenn hier reingegangen wird existiert der Datensatz noch nicht
-                
-                //Befehl der den neuen URL zur DB hinzuf&uuml;gt
-                $sql = "INSERT INTO `search`(`url`, `indexed_last`, `title`, `description`, `favico_url`, `keywords`) VALUES ('" . bin2hex($push_url) . "','0','','','','')";
-                //Ausf&uuml;hren des Befehls
-                start_sql($mysqli,$sql);
-            }else{
-                //Wenn hier reingegangen wird existiert der Datensatz bzw. der URL schon
-                //in der DB und wird &uuml;bersprungen
-                continue;
-            }
-        }
-        //Schlieﬂen des Mysqli Objekts
-        close_mysqli($mysqli);
-        //Datencrawl starten
-        data_crawl();
-        //R&uuml;ckgabe true
-        return true;
-    }else{
-        //Keine Crawlbaren Datens&auml;tze da daher wird die recrawl Funktion aufgerufen
-        return recrawl();
-    }    
-}
-function crawler_cli(){
-    //Starten der while-Schleife
-    while(file_exists($name)){
-        //Starten des Crawl - Prozesses
-        crawler();
-    }
-    //Schleife l&auml;uft solange wie der Dienst l&auml;uft da bei stopen des dienstes die 
-    //datei $name gel&ouml;scht wird und somit der Loop beendet wird.    
-}
-/*
-function crawl($url){
-    global $context;
-    //Eine neues DOMDocument erstellen
-	$doc = new DOMDocument();
-	//Zwischenspeichern der Seite
-	$side = @file_get_contents($url,false,$context);
-    //Das downloaden der Seite
-	@$doc->loadHTML($side);
-	// Create an array of all of the links we find on the page.
-	$linklist = $doc->getElementsByTagName("a");
-	//Array erstellen wo alle Verwertbaren url&apos;s gespeichert werden
-	$links_found = array();
-	// Loop through all of the links we find.
-	foreach ($linklist as $link) {
-		$l =  $link->getAttribute("href");
-		// Process all of the links we find. This is covered in part 2 and part 3 of the video series.
-		if (substr($l, 0, 1) == "/" && substr($l, 0, 2) != "//") {
-			$l = parse_url($url)["scheme"]."://".parse_url($url)["host"].$l;
-		} else if (substr($l, 0, 2) == "//") {
-			$l = parse_url($url)["scheme"].":".$l;
-		} else if (substr($l, 0, 2) == "./") {
-			$l = parse_url($url)["scheme"]."://".parse_url($url)["host"].dirname(parse_url($url)["path"]).substr($l, 1);
-		} else if (substr($l, 0, 1) == "#") {
-			continue;
-		} else if (substr($l, 0, 3) == "../") {
-			$l = parse_url($url)["scheme"]."://".parse_url($url)["host"]."/".$l;
-		} else if (substr($l, 0, 11) == "javascript:") {
-			continue;
-		} else if (substr($l, 0, 5) != "https" && substr($l, 0, 4) != "http") {
-			$l = parse_url($url)["scheme"]."://".parse_url($url)["host"]."/".$l;
-		}
-        //Passende URLs hinzuf&uuml;gen
-        if(!in_array($l,$links_found)){
-            array_push($links_found,$l);
-        }
-	}
-    return $links_found;
-}
+
 function get_details($url){
     global $context;
 	// Create a new instance of PHP's DOMDocument class.
@@ -247,40 +144,114 @@ function recrawl(){
     //Hier funktion bauen die vorhandene URL&apos;s nochmal Crawlt
     return true;
 }
-function find_url(){
+
+function crawl($url){
+    global $context;
+    //Eine neues DOMDocument erstellen
+	$doc = new DOMDocument();
+	//Zwischenspeichern der Seite
+	$side = @file_get_contents($url,false,$context);
+    //Das downloaden der Seite
+	@$doc->loadHTML($side);
+	// Create an array of all of the links we find on the page.
+	$linklist = $doc->getElementsByTagName("a");
+	//Array erstellen wo alle Verwertbaren url&apos;s gespeichert werden
+	$links_found = array();
+	// Loop through all of the links we find.
+	foreach ($linklist as $link) {
+		$l =  $link->getAttribute("href");
+		// Process all of the links we find. This is covered in part 2 and part 3 of the video series.
+		if (substr($l, 0, 1) == "/" && substr($l, 0, 2) != "//") {
+			$l = parse_url($url)["scheme"]."://".parse_url($url)["host"].$l;
+		} else if (substr($l, 0, 2) == "//") {
+			$l = parse_url($url)["scheme"].":".$l;
+		} else if (substr($l, 0, 2) == "./") {
+			$l = parse_url($url)["scheme"]."://".parse_url($url)["host"].dirname(parse_url($url)["path"]).substr($l, 1);
+		} else if (substr($l, 0, 1) == "#") {
+			continue;
+		} else if (substr($l, 0, 3) == "../") {
+			$l = parse_url($url)["scheme"]."://".parse_url($url)["host"]."/".$l;
+		} else if (substr($l, 0, 11) == "javascript:") {
+			continue;
+		} else if (substr($l, 0, 5) != "https" && substr($l, 0, 4) != "http") {
+			$l = parse_url($url)["scheme"]."://".parse_url($url)["host"]."/".$l;
+		}
+        //Passende URLs hinzuf&uuml;gen
+        if(!in_array($l,$links_found)){
+            array_push($links_found,$l);
+        }
+	}
+    return $links_found;
+}
+//Funktion die aufgerufen wird wenn meist &uuml;ber web genutzt wird
+function crawler(){
+    //SQL Befehl der alle Datens&auml;tze w&auml;hlt die noch nicht ge-crawlt wurde
     $sql = "SELECT * FROM `search` WHERE `indexed_last` = '0'";
+    //Neues Mysqli-Objekt erstellen
     $mysqli = new_mysqli();
+    //R&uuml;ckgabe des Befehls auswerten und in Array speichern
     $res = sql_result_to_array(start_sql($mysqli,$sql));
+    //Datenbank-Verbindung schlieﬂen
     close_mysqli($mysqli);
+    //&Uuml;berpr&uuml;fen ob ein Datensatz existiert der noch nicht gecrawlt wurde
     if(isset($res[0])){
+        //Wenn hier rein gegangen wird dann existiert ein Element das noch nicht gecrawlt wird
+        
+        //Random ein Element aus der Menge nehmen
         $crawl_el = $res[array_rand($res)];
+        //URL von Hex nach Bin umwandeln
         $url = hex2bin($crawl_el["url"]);
+        //Alle URL&apos;s die bei dem gecrawlten URL gefunden wurden als R&uuml;ckgabe im Array speichern
         $found_urls = crawl($url);
+        //SQL-Befehl der den gerade ge-crawlten Datensatz updatet
         $sql = "UPDATE `search` SET `indexed_last`='" . time() . "' WHERE `url` = '" . $crawl_el["url"] . "'";
+        //Neuse Mysqli-Objekt erstellen
         $mysqli = new_mysqli();
-        //Updaten des Verwendeten URL&apos;s
+        //Updaten des Verwendeten URL&apos;s durch ausf&uuml;hren des Befehls
         start_sql($mysqli,$sql);
         //Speichern der gefundenen URL&apos;s
         foreach($found_urls as $push_url){
             //&Uuml;berpr&uuml;fung ob schon vorhanden
             $sql = "SELECT * FROM `search` WHERE `url` = '" . bin2hex($push_url) . "'";
+            //R&uuml;ckgabe auswerten
             $res = sql_result_to_array(start_sql($mysqli,$sql));
+            //Entscheidung treffen
             if(!isset($res[0]["url"])){
+                //Wenn hier reingegangen wird existiert der Datensatz noch nicht
+                
+                //Befehl der den neuen URL zur DB hinzuf&uuml;gt
                 $sql = "INSERT INTO `search`(`url`, `indexed_last`, `title`, `description`, `favico_url`, `keywords`) VALUES ('" . bin2hex($push_url) . "','0','','','','')";
+                //Ausf&uuml;hren des Befehls
                 start_sql($mysqli,$sql);
             }else{
+                //Wenn hier reingegangen wird existiert der Datensatz bzw. der URL schon
+                //in der DB und wird &uuml;bersprungen
                 continue;
             }
         }
+        //Schlieﬂen des Mysqli Objekts
         close_mysqli($mysqli);
-        //Zweiten PI mit Data_crawl beauftragen
+        //Datencrawl starten
         data_crawl();
+        //R&uuml;ckgabe true
         return true;
     }else{
-        //Keine Crawlbaren Datens&auml;tze da
+        //Keine Crawlbaren Datens&auml;tze da daher wird die recrawl Funktion aufgerufen
         return recrawl();
+    }    
+}
+//Funktion die aufgerufen wird wenn meist &uuml;ber cli genutzt wird
+function crawler_cli(){
+    //Starten der while-Schleife
+    while(file_exists($name)){
+        //Starten des Crawl - Prozesses
+        crawler();
     }
-}*/
+    //Schleife l&auml;uft solange wie der Dienst l&auml;uft da bei stopen des dienstes die 
+    //datei $name gel&ouml;scht wird und somit der Loop beendet wird.    
+}
+
+
 /////////////////////////
 //AB HIER GEHT DER //////
 //MYSQL - PART AN  //////
