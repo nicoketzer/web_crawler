@@ -10,6 +10,18 @@
     $db_name = "[DATENBANK_NAME]";
     $db_addr = "[DATENBANK_IP]";
     $db_port = "[DATENBANK_PORT]";
+    $db_tbl = "[DATENBANK_TABELLE]";
+    #####################################
+    ##Spaltennamen in der Tabelle########
+    ##nicht ver&auml;ndern außer die#####
+    ##Namen weichen ab###################
+    #####################################
+    $db_tbl_url = "url";
+    $db_tbl_indexed_last = "indexed_last";
+    $db_tbl_title = "title";
+    $db_tbl_desc = "description";
+    $db_tbl_favicon = "favico_url";
+    $db_tbl_keywords = "keywords";    
     #####################################
     ##Pfad zur ".run" Datei f&uuml;r ####
     ##Schleifen o.&auml;. damit man aus##
@@ -28,4 +40,6 @@
     $transmit_node_data = false;
     $transmit_error = true;
     $update_auto = false;
+    $max_el_data_crawl = 30;
+    $favicon_standart_url = "/search/favicon.ico";
 ?>

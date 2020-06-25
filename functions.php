@@ -7,6 +7,8 @@ $options = array('http'=>array('method'=>"GET", 'headers'=>"User-Agent: " . $use
 $context = stream_context_create($options);
 
 function get_details($url){
+    //Einbinden des Favicon - Standart URL&apos;s
+    global $favicon_standart_url;
     //Verf&uuml;gbar machen des $context in der Funktion
     global $context;
 	// Neues Dom-Objekt
@@ -82,7 +84,7 @@ function get_details($url){
         //&Uuml;berpr&uuml;fen ob ein favicon vorhanden war
         if ($status !== "200") {
             //Wenn nicht wird Standart - Icon gesetzt
-            $favico = "/search/no_fav.ico";
+            $favico = $favicon_standart_url;
         }else{
             //Wenn schon wird dieser URL gesetzt
             $favico = $fav_url;
@@ -146,13 +148,13 @@ function get_details($url){
 	//Abarbeiten aller verwertbaren URL&apos;s
     foreach($links_found as $push_url){
         //&Uuml;berpr&uuml;fung ob schon vorhanden
-        $sql = "SELECT * FROM `search` WHERE `url` = '" . bin2hex($push_url) . "'";
+        $sql = "SELECT * FROM `" . $db_tbl . "` WHERE `" . $db_tbl_url . "` = '" . bin2hex($push_url) . "'";
         //Ausf&uuml;hren und verarbeiten des Befehls
         $res = sql_result_to_array(start_sql($mysqli,$sql));
         //&Uuml;berpr&uuml;fen
         if(!isset($res[0]["url"])){
             //Befehl zum hinzuf&uuml;gen des Datensatzes
-            $sql = "INSERT INTO `search`(`url`, `indexed_last`, `title`, `description`, `favico_url`, `keywords`) VALUES ('" . bin2hex($push_url) . "','0','','','','')";
+            $sql = "INSERT INTO `" . $db_tbl . "`(`" . $db_tbl_url . "`, `" . $db_tbl_indexed_last . "`, `" . $db_tbl_title . "`, `" . $db_tbl_desc . "`, `" . $db_tbl_favicon . "`, `" . $db_tbl_keywords . "`) VALUES ('" . bin2hex($push_url) . "','0','','','','')";
             //Ausf&uuml;hren des Befehls --> Hinzuf&uuml;gen
             start_sql($mysqli,$sql);
         }else{
@@ -170,8 +172,10 @@ function data_crawl(){
     global $main_crawler;
     //Einbinden des Namen&apos;s des ".run"-Files
     global $name;
+    //Einbinden der Maximal zu abfertigenden Elemente
+    global $max_el_data_crawl;
     //Befehl um Elemente zu bekommen die noch keine Daten haben    
-    $sql = "SELECT * FROM `search` WHERE `title` = '' OR `description` = '' OR `favico_url` = '' OR `keywords` = ''";
+    $sql = "SELECT * FROM `" . $db_tbl . "` WHERE `" . $db_tbl_title . "` = '' OR `" . $db_tbl_desc . "` = '' OR `" . $db_tbl_favicon . "` = '' OR `" . $db_tbl_keywords . "` = ''";
     //Erstellen eines neuen Mysqli-Objekts
     $mysqli = new_mysqli();
     //Ausf&uuml;hren und auswerten des Sql-Ergebnisses aus dem Befehl
@@ -182,7 +186,7 @@ function data_crawl(){
     foreach($res as $get_all){
         if($main_crawler == "web"){
             //&Uuml;berpr&uuml;fen ob counter noch unter festgelegtem Wert
-            if($i < 30){
+            if($i < $max_el_data_crawl){
                 //Hochrechnen des Counter&apos;s
                 $i++;
                 //Umwandeln des URL&apos;s
@@ -191,7 +195,7 @@ function data_crawl(){
                 //R&uuml;ckgabe der Werte erfolgt bereits im hex-Format
                 $details = get_details($url);
                 //Erstellen eines "Speichern-Der-Daten"-Sql Befehl
-                $sql = "UPDATE `search` SET `title`='" . $details["title"] . "', `description`='" . $details["desc"] . "',`favico_url`='" . $details["favico"] . "',`keywords`='" . $details["keywords"] . "',`indexed_last`='" . time() . "' WHERE `url` = '" . $get_all["url"] . "'";
+                $sql = "UPDATE `" . $db_tbl . "` SET `" . $db_tbl_title . "`='" . $details["title"] . "', `" . $db_tbl_desc . "`='" . $details["desc"] . "',`" . $db_tbl_favicon . "`='" . $details["favico"] . "',`" . $db_tbl_keywords . "`='" . $details["keywords"] . "',`" . $db_tbl_indexed_last . "`='" . time() . "' WHERE `" . $db_tbl_url . "` = '" . $get_all["url"] . "'";
                 //Ausf&uuml;hren des Befehls
                 start_sql($mysqli,$sql);
             }else{
@@ -201,7 +205,7 @@ function data_crawl(){
         }else{
             //&Uuml;berpr&uuml;fen ob ".run" - File noch existiert und maximale anzahl 
             //noch nicht &uuml;berschritten wurde
-            if(file_exists($name) && $i < 30){
+            if(file_exists($name) && $i < $max_el_data_crawl){
                 //Hochrechnen des Counter&apos;s
                 $i++;
                 //Umwandeln des URL&apos;s
@@ -210,7 +214,7 @@ function data_crawl(){
                 //R&uuml;ckgabe der Werte erfolgt bereits im hex-Format
                 $details = get_details($url);
                 //Erstellen eines "Speichern-Der-Daten"-Sql Befehl
-                $sql = "UPDATE `search` SET `title`='" . $details["title"] . "', `description`='" . $details["desc"] . "',`favico_url`='" . $details["favico"] . "',`keywords`='" . $details["keywords"] . "',`indexed_last`='" . time() . "' WHERE `url` = '" . $get_all["url"] . "'";
+                $sql = "UPDATE `" . $db_tbl . "` SET `" . $db_tbl_title . "`='" . $details["title"] . "', `" . $db_tbl_desc . "`='" . $details["desc"] . "',`" . $db_tbl_favicon . "`='" . $details["favico"] . "',`" . $db_tbl_keywords . "`='" . $details["keywords"] . "',`" . $db_tbl_indexed_last . "`='" . time() . "' WHERE `" . $db_tbl_url . "` = '" . $get_all["url"] . "'";
                 //Ausf&uuml;hren des Befehls
                 start_sql($mysqli,$sql);
             }else{
@@ -270,7 +274,7 @@ function crawl($url){
 //Funktion die aufgerufen wird wenn meist &uuml;ber web genutzt wird
 function crawler(){
     //SQL Befehl der alle Datens&auml;tze w&auml;hlt die noch nicht ge-crawlt wurde
-    $sql = "SELECT * FROM `search` WHERE `indexed_last` = '0'";
+    $sql = "SELECT * FROM `" . $db_tbl . "` WHERE `" . $db_tbl_indexed_last . "` = '0'";
     //Neues Mysqli-Objekt erstellen
     $mysqli = new_mysqli();
     //R&uuml;ckgabe des Befehls auswerten und in Array speichern
@@ -288,7 +292,7 @@ function crawler(){
         //Alle URL&apos;s die bei dem gecrawlten URL gefunden wurden als R&uuml;ckgabe im Array speichern
         $found_urls = crawl($url);
         //SQL-Befehl der den gerade ge-crawlten Datensatz updatet
-        $sql = "UPDATE `search` SET `indexed_last`='" . time() . "' WHERE `url` = '" . $crawl_el["url"] . "'";
+        $sql = "UPDATE `" . $db_tbl . "` SET `" . $db_tbl_indexed_last . "`='" . time() . "' WHERE `" . $db_tbl_url . "` = '" . $crawl_el["url"] . "'";
         //Neuse Mysqli-Objekt erstellen
         $mysqli = new_mysqli();
         //Updaten des Verwendeten URL&apos;s durch ausf&uuml;hren des Befehls
@@ -296,7 +300,7 @@ function crawler(){
         //Speichern der gefundenen URL&apos;s
         foreach($found_urls as $push_url){
             //&Uuml;berpr&uuml;fung ob schon vorhanden
-            $sql = "SELECT * FROM `search` WHERE `url` = '" . bin2hex($push_url) . "'";
+            $sql = "SELECT * FROM `" . $db_tbl . "` WHERE `" . $db_tbl_url . "` = '" . bin2hex($push_url) . "'";
             //R&uuml;ckgabe auswerten
             $res = sql_result_to_array(start_sql($mysqli,$sql));
             //Entscheidung treffen
@@ -304,7 +308,7 @@ function crawler(){
                 //Wenn hier reingegangen wird existiert der Datensatz noch nicht
                 
                 //Befehl der den neuen URL zur DB hinzuf&uuml;gt
-                $sql = "INSERT INTO `search`(`url`, `indexed_last`, `title`, `description`, `favico_url`, `keywords`) VALUES ('" . bin2hex($push_url) . "','0','','','','')";
+                $sql = "INSERT INTO `" . $db_tbl . "`(`" . $db_tbl_url . "`, `" . $db_tbl_indexed_last . "`, `" . $db_tbl_title . "`, `" . $db_tbl_desc . "`, `" . $db_tbl_favicon . "`, `" . $db_tbl_keywords . "`) VALUES ('" . bin2hex($push_url) . "','0','','','','')";
                 //Ausf&uuml;hren des Befehls
                 start_sql($mysqli,$sql);
             }else{
