@@ -244,11 +244,16 @@ if(!function_exists("sql_result_to_array")){
 }
 if(!function_exists("new_mysqli")){
 function new_mysqli(){
-    global $db_bn;
-    global $db_pw;
-    global $db_tbl;
-    global $db_conn;
-    $mysqli = new mysqli($db_conn,$db_bn,$db_pw,$db_tbl);
+    global $db_user;
+    global $db_pass;
+    global $db_name;
+    global $db_addr;
+    global $db_port;
+    if($db_port == ""){
+        $mysqli = new mysqli($db_addr,$db_user,$db_pass,$db_name);
+    }else{
+        $mysqli = new mysqli($db_addr.":".$db_port,$db_user,$db_pass,$db_name);
+    }
     //echo mysqli_get_host_info($mysqli);
     if ($mysqli->connect_errno) {
         echo "Verbindung fehlgeschlagen: " . $mysqli->connect_error;

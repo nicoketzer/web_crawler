@@ -1,8 +1,8 @@
 <?php
-    $db_bn = "[DATENBANK_NAME]";
-    $db_pw = "[DATENBANK_PASSWORT]";
-    $db_tbl = "[DATENBANK_TABELLE]";
-    $db_conn = "[DATENBANK_IP]";
+    $db_user = "[DATENBANK_NAME]";
+    $db_pass = "[DATENBANK_PASSWORT]";
+    $db_name = "[DATENBANK_TABELLE]";
+    $db_addr = "[DATENBANK_IP]";
     $db_port = "[DATENBANK_PORT]";
     $name = "[DIR_FOR_RUN_FILE]";
     $main_crawler = "web";
