@@ -2,142 +2,226 @@
 //Einbinden von var.php
 include("var.php");
 // Array mit Optionen zum Context
-$options = array('http'=>array('method'=>"GET", 'headers'=>"User-Agent: web_crawler_by_nicoketzer/github\n"));
+$options = array('http'=>array('method'=>"GET", 'headers'=>"User-Agent: " . $user_agent . "\n"));
 // Create the stream context.
 $context = stream_context_create($options);
 
 function get_details($url){
+    //Verf&uuml;gbar machen des $context in der Funktion
     global $context;
-	// Create a new instance of PHP's DOMDocument class.
+	// Neues Dom-Objekt
 	$doc = new DOMDocument();
-	// Use file_get_contents() to download the page, pass the output of file_get_contents()
-	// to PHP's DOMDocument class.
+	// Die Seite $url wird &uuml;ber file_get_contents() heruntergeladen und tempor&auml;r in 
+	// $side gespeichert
 	$side = @file_get_contents($url, false, $context);
-	@$doc->loadHTML($side);
+	//Der HTML-Code wird in das Dom-Objekt "hinein" geladen
+    @$doc->loadHTML($side);
 	//Festlegen eines Titels falls kein Titeltag vorhanden ist
 	$title = "Kein Titel vorhanden";
-	//Titelbug fixen
+	//Titel aus HTML-Splitten
+	//HTML hinter Titel-Element "weg"-splitten
 	$split_1 = explode("</title>",$side);
+	//Rest-St&uuml;ck w&auml;hlen
 	$temp_1 = $split_1[0];
+	//HTML vor Titel-Element "weg"-splitten
 	$split_2 = explode("<title>",$temp_1);
+	//Schauen ob "HTML" bzw. Text &uuml;brig bleibt und wenn ja 
+	//das als Titel Setzen
 	if(isset($split_2[1])){
         $title = $split_2[1];
     }
-	//Titeelbug fix ende
-	// Give $description and $keywords no value initially. We do this to prevent errors.
+	// Eine Beschreibung und Keywords setzen falls keine im HTML gefunden werden
 	$description = "Keine Beschreibung vorhanden";
 	$keywords = "Keine Keywords vorhanden";
-	// Create an array of all of the pages <meta> tags. There will probably be lots of these.
+	// Alle Meta-Tag&apos;s aus dem HTML nehemen
 	$metas = $doc->getElementsByTagName("meta");
-	// Loop through all of the <meta> tags we find.
+	// Alle Meta-Tags durchgehen
 	for ($i = 0; $i < $metas->length; $i++) {
 		$meta = $metas->item($i);
-		// Get the description and the keywords.
-		if(strtolower($meta->getAttribute("name")) == "description")
-			$description = $meta->getAttribute("content");
-		if(strtolower($meta->getAttribute("name")) == "keywords")
-			$keywords = $meta->getAttribute("content");
-	}
-    //Versuchen ein Bild zu Bekommen
+		// Schauen ob Beschreibungs- oder Keyword-Metatag gefunden werden
+		if(strtolower($meta->getAttribute("name")) == "description"){
+			//Wenn eine Beschreibung gefunden wurde diese hier &uuml;bernehmen
+            $description = $meta->getAttribute("content");
+		}
+		if(strtolower($meta->getAttribute("name")) == "keywords"){
+			//Wenn Keywords gefunden wurden hier setzen
+            $keywords = $meta->getAttribute("content");
+        }
+	}	
+    //Versuchen ein Bild zu Bekommen (Favicon)
     $links = $doc->getElementsByTagName("link");
 	for ($i = 0; $i < $links->length; $i++) {
 		$link_tab = $links->item($i);
-		// Get the description and the keywords.
+		// Schauen ob passender Tag gefunden wird
 		if(strtolower($link_tab->getAttribute("rel")) == "shortcut icon"){
             $favico = $link_tab->getAttribute("href");
         }
     }
+    //Fix f&uuml;r Favicon falls der tag anderen rel-Parameter hatte 
+    //oder das Element nicht existierte
     if(!isset($favico)){
+        //Bekommen des Protokolls auf einfache Art
         $tmp = explode("://",$url);
+        //Temp. Festlegen bzw. Speichern des Protokolls
         $prot = $tmp[0];
+        //Restlicher URL
         $url_n = $tmp[1];
+        //Splitten aller Ordner etc.
         $tmp = explode("/",$url_n);
+        //Nur Pure Domain behalten
         $url_n = $tmp[0];
+        //Temp. zusammensetzen eines Link&apos;s f&uuml;r Favicon
         $fav_url = $prot . "://" . $url_n . "/favicon.ico";
+        //Abfrage Starten
         $tmp_ico = file_get_contents($fav_url,false,$context);
+        //R&uuml;ckgabe der Abfrage einfangen
         $status_line = $http_response_header[0];
+        //Extrahieren des Status-Codes
         preg_match('{HTTP\/\S*\s(\d{3})}', $status_line, $match);
         $status = $match[1];
+        //&Uuml;berpr&uuml;fen ob ein favicon vorhanden war
         if ($status !== "200") {
+            //Wenn nicht wird Standart - Icon gesetzt
             $favico = "/search/no_fav.ico";
         }else{
+            //Wenn schon wird dieser URL gesetzt
             $favico = $fav_url;
         }
     }
+    //&Uuml;berpr&uuml;fen der Werte
     if($description == ""){
+        //Falls Beschreibung doch leer war
         $description = "Keine Beschreibung vorhanden";
     }
     if($keywords == ""){
+        //Falls doch keine Keywords da sind
         $keywords = "Keine Keywords vorhanden";
     }
     if($title == ""){
+        //Falls doch kein Titel vorhanden ist
         $title = "Kein Titel vorhanden";
     }
-	// Create an array of all of the links we find on the page.
+    
+    ###########################################    
+    ##Um die Performance besser zu machen und##
+    ##um den Traffic zu reduzieren wird bei####
+    ##einem Data-Crawl auch sofort ein#########
+    ##normaler Crawl des URL&apos;s############
+    ##durchgef&uuml;hrt.#######################   
+    ###########################################    
+        
+	// Array Erstellen das alle "a"-Tags umfasst
 	$linklist = $doc->getElementsByTagName("a");
 	//Array erstellen wo alle Verwertbaren url&apos;s gespeichert werden
 	$links_found = array();
-	// Loop through all of the links we find.
+	// Schleife die alle URL&apos;s abarbeitet
 	foreach ($linklist as $link) {
-		$l =  $link->getAttribute("href");
-		// Process all of the links we find. This is covered in part 2 and part 3 of the video series.
-		if (substr($l, 0, 1) == "/" && substr($l, 0, 2) != "//") {
-			$l = parse_url($url)["scheme"]."://".parse_url($url)["host"].$l;
-		} else if (substr($l, 0, 2) == "//") {
-			$l = parse_url($url)["scheme"].":".$l;
-		} else if (substr($l, 0, 2) == "./") {
-			$l = parse_url($url)["scheme"]."://".parse_url($url)["host"].dirname(parse_url($url)["path"]).substr($l, 1);
-		} else if (substr($l, 0, 1) == "#") {
-			continue;
-		} else if (substr($l, 0, 3) == "../") {
-			$l = parse_url($url)["scheme"]."://".parse_url($url)["host"]."/".$l;
-		} else if (substr($l, 0, 11) == "javascript:") {
-			continue;
-		} else if (substr($l, 0, 5) != "https" && substr($l, 0, 4) != "http") {
-			$l = parse_url($url)["scheme"]."://".parse_url($url)["host"]."/".$l;
-		}
+	    //Bekommen des URL&apos;s von dem "a"-Tag   
+    	$l =  $link->getAttribute("href");
+    	// URL-Parsen und verschiedenen Controllen unterziehen
+    	if (substr($l, 0, 1) == "/" && substr($l, 0, 2) != "//") {
+    		$l = parse_url($url)["scheme"]."://".parse_url($url)["host"].$l;
+    	} else if (substr($l, 0, 2) == "//") {
+    		$l = parse_url($url)["scheme"].":".$l;
+    	} else if (substr($l, 0, 2) == "./") {
+    		$l = parse_url($url)["scheme"]."://".parse_url($url)["host"].dirname(parse_url($url)["path"]).substr($l, 1);
+    	} else if (substr($l, 0, 1) == "#") {
+    	   //&Uuml;berspringen wenn href nur ein Platzhalter war bzw. ein #-Verweiß
+    		continue;
+    	} else if (substr($l, 0, 3) == "../") {
+    		$l = parse_url($url)["scheme"]."://".parse_url($url)["host"]."/".$l;
+    	} else if (substr($l, 0, 11) == "javascript:") {
+    	   //&Uuml;berspringen wenn href ein javascript ausf&uuml;hren sollte
+    		continue;
+    	} else if (substr($l, 0, 5) != "https" && substr($l, 0, 4) != "http") {
+    		$l = parse_url($url)["scheme"]."://".parse_url($url)["host"]."/".$l;
+    	}
         //Passende URLs hinzuf&uuml;gen
         if(!in_array($l,$links_found)){
             array_push($links_found,$l);
         }
 	}
+	//Erstellen eines neuen Mysqli-Objekt&apos;s
 	$mysqli = new_mysqli();
+	//Abarbeiten aller verwertbaren URL&apos;s
     foreach($links_found as $push_url){
         //&Uuml;berpr&uuml;fung ob schon vorhanden
         $sql = "SELECT * FROM `search` WHERE `url` = '" . bin2hex($push_url) . "'";
+        //Ausf&uuml;hren und verarbeiten des Befehls
         $res = sql_result_to_array(start_sql($mysqli,$sql));
+        //&Uuml;berpr&uuml;fen
         if(!isset($res[0]["url"])){
+            //Befehl zum hinzuf&uuml;gen des Datensatzes
             $sql = "INSERT INTO `search`(`url`, `indexed_last`, `title`, `description`, `favico_url`, `keywords`) VALUES ('" . bin2hex($push_url) . "','0','','','','')";
+            //Ausf&uuml;hren des Befehls --> Hinzuf&uuml;gen
             start_sql($mysqli,$sql);
         }else{
+            //&Uuml;berspringen da schon vorhanden in DB
             continue;
         }
     }
+    //Schließen des Mysqli-Objekt&apos;s    
     close_mysqli($mysqli);
+    //R&uuml;ckgabe der Details
     return array("title"=>bin2hex($title),"desc"=>bin2hex($description),"favico"=>bin2hex($favico),"keywords"=>bin2hex($keywords));
 }
 function data_crawl(){
+    //Einbinden des Hauptmodus
+    global $main_crawler;
+    //Einbinden des Namen&apos;s des ".run"-Files
     global $name;
-    //Hier Funktion bauen das zu allen URL&apos;s Details wie Titel beschreibung und ICON gespeichert werden
-    //Evtl. Localen Ordner erstellen wo icon&apos;s gespeichert werden
+    //Befehl um Elemente zu bekommen die noch keine Daten haben    
     $sql = "SELECT * FROM `search` WHERE `title` = '' OR `description` = '' OR `favico_url` = '' OR `keywords` = ''";
+    //Erstellen eines neuen Mysqli-Objekts
     $mysqli = new_mysqli();
+    //Ausf&uuml;hren und auswerten des Sql-Ergebnisses aus dem Befehl
     $res = sql_result_to_array(start_sql($mysqli,$sql));
+    //Setzen des Anfangswertes des Z&auml;hlers
     $i = 0;
+    //Abgehen jedes Elements
     foreach($res as $get_all){
-        if(file_exists($name) && $i < 30){
-            $i++;
-            $url = hex2bin($get_all["url"]);
-            //Alle Details bekommen
-            //R&uuml;ckgabe der Werte erfolgt bereits im hex-Format
-            $details = get_details($url);
-            $sql = "UPDATE `search` SET `title`='" . $details["title"] . "', `description`='" . $details["desc"] . "',`favico_url`='" . $details["favico"] . "',`keywords`='" . $details["keywords"] . "',`indexed_last`='" . time() . "' WHERE `url` = '" . $get_all["url"] . "'";
-            start_sql($mysqli,$sql);
+        if($main_crawler == "web"){
+            //&Uuml;berpr&uuml;fen ob counter noch unter festgelegtem Wert
+            if($i < 30){
+                //Hochrechnen des Counter&apos;s
+                $i++;
+                //Umwandeln des URL&apos;s
+                $url = hex2bin($get_all["url"]);
+                //Alle Details bekommen
+                //R&uuml;ckgabe der Werte erfolgt bereits im hex-Format
+                $details = get_details($url);
+                //Erstellen eines "Speichern-Der-Daten"-Sql Befehl
+                $sql = "UPDATE `search` SET `title`='" . $details["title"] . "', `description`='" . $details["desc"] . "',`favico_url`='" . $details["favico"] . "',`keywords`='" . $details["keywords"] . "',`indexed_last`='" . time() . "' WHERE `url` = '" . $get_all["url"] . "'";
+                //Ausf&uuml;hren des Befehls
+                start_sql($mysqli,$sql);
+            }else{
+                //Beenden des Loop&apos;s
+                break;
+            }
         }else{
-            break;
+            //&Uuml;berpr&uuml;fen ob ".run" - File noch existiert und maximale anzahl 
+            //noch nicht &uuml;berschritten wurde
+            if(file_exists($name) && $i < 30){
+                //Hochrechnen des Counter&apos;s
+                $i++;
+                //Umwandeln des URL&apos;s
+                $url = hex2bin($get_all["url"]);
+                //Alle Details bekommen
+                //R&uuml;ckgabe der Werte erfolgt bereits im hex-Format
+                $details = get_details($url);
+                //Erstellen eines "Speichern-Der-Daten"-Sql Befehl
+                $sql = "UPDATE `search` SET `title`='" . $details["title"] . "', `description`='" . $details["desc"] . "',`favico_url`='" . $details["favico"] . "',`keywords`='" . $details["keywords"] . "',`indexed_last`='" . time() . "' WHERE `url` = '" . $get_all["url"] . "'";
+                //Ausf&uuml;hren des Befehls
+                start_sql($mysqli,$sql);
+            }else{
+                //Beenden des Loop&apos;s
+                break;
+            }
         }
     }
+    //Schließen des Mysqli-Objekts
     close_mysqli($mysqli);
+    //R&uuml;ckgabe
     return true;
 }
 function recrawl(){
