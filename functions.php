@@ -1,9 +1,76 @@
 <?php
+//Einbinden von var.php
 include("var.php");
-// The array that we pass to stream_context_create() to modify our User Agent.
-$options = array('http'=>array('method'=>"GET", 'headers'=>"User-Agent: own_search_bot/own_search_crawler//Version0.0.1\n"));
+// Array mit Optionen zum Context
+$options = array('http'=>array('method'=>"GET", 'headers'=>"User-Agent: web_crawler_by_nicoketzer/github\n"));
 // Create the stream context.
 $context = stream_context_create($options);
+function crawler(){
+    //SQL Befehl der alle Datens&auml;tze w&auml;hlt die noch nicht ge-crawlt wurde
+    $sql = "SELECT * FROM `search` WHERE `indexed_last` = '0'";
+    //Neues Mysqli-Objekt erstellen
+    $mysqli = new_mysqli();
+    //R&uuml;ckgabe des Befehls auswerten und in Array speichern
+    $res = sql_result_to_array(start_sql($mysqli,$sql));
+    //Datenbank-Verbindung schlieﬂen
+    close_mysqli($mysqli);
+    //&Uuml;berpr&uuml;fen ob ein Datensatz existiert der noch nicht gecrawlt wurde
+    if(isset($res[0])){
+        //Wenn hier rein gegangen wird dann existiert ein Element das noch nicht gecrawlt wird
+        
+        //Random ein Element aus der Menge nehmen
+        $crawl_el = $res[array_rand($res)];
+        //URL von Hex nach Bin umwandeln
+        $url = hex2bin($crawl_el["url"]);
+        //Alle URL&apos;s die bei dem gecrawlten URL gefunden wurden als R&uuml;ckgabe im Array speichern
+        $found_urls = crawl($url);
+        //SQL-Befehl der den gerade ge-crawlten Datensatz updatet
+        $sql = "UPDATE `search` SET `indexed_last`='" . time() . "' WHERE `url` = '" . $crawl_el["url"] . "'";
+        //Neuse Mysqli-Objekt erstellen
+        $mysqli = new_mysqli();
+        //Updaten des Verwendeten URL&apos;s durch ausf&uuml;hren des Befehls
+        start_sql($mysqli,$sql);
+        //Speichern der gefundenen URL&apos;s
+        foreach($found_urls as $push_url){
+            //&Uuml;berpr&uuml;fung ob schon vorhanden
+            $sql = "SELECT * FROM `search` WHERE `url` = '" . bin2hex($push_url) . "'";
+            //R&uuml;ckgabe auswerten
+            $res = sql_result_to_array(start_sql($mysqli,$sql));
+            //Entscheidung treffen
+            if(!isset($res[0]["url"])){
+                //Wenn hier reingegangen wird existiert der Datensatz noch nicht
+                
+                //Befehl der den neuen URL zur DB hinzuf&uuml;gt
+                $sql = "INSERT INTO `search`(`url`, `indexed_last`, `title`, `description`, `favico_url`, `keywords`) VALUES ('" . bin2hex($push_url) . "','0','','','','')";
+                //Ausf&uuml;hren des Befehls
+                start_sql($mysqli,$sql);
+            }else{
+                //Wenn hier reingegangen wird existiert der Datensatz bzw. der URL schon
+                //in der DB und wird &uuml;bersprungen
+                continue;
+            }
+        }
+        //Schlieﬂen des Mysqli Objekts
+        close_mysqli($mysqli);
+        //Datencrawl starten
+        data_crawl();
+        //R&uuml;ckgabe true
+        return true;
+    }else{
+        //Keine Crawlbaren Datens&auml;tze da daher wird die recrawl Funktion aufgerufen
+        return recrawl();
+    }    
+}
+function crawler_cli(){
+    //Starten der while-Schleife
+    while(file_exists($name)){
+        //Starten des Crawl - Prozesses
+        crawler();
+    }
+    //Schleife l&auml;uft solange wie der Dienst l&auml;uft da bei stopen des dienstes die 
+    //datei $name gel&ouml;scht wird und somit der Loop beendet wird.    
+}
+/*
 function crawl($url){
     global $context;
     //Eine neues DOMDocument erstellen
@@ -213,7 +280,7 @@ function find_url(){
         //Keine Crawlbaren Datens&auml;tze da
         return recrawl();
     }
-}
+}*/
 /////////////////////////
 //AB HIER GEHT DER //////
 //MYSQL - PART AN  //////
