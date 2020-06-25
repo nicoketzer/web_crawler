@@ -5,9 +5,9 @@
     ##anpassen kann wenn sich Daten######
     ##ändern sollten.####################
     #####################################
-    $db_user = "[DATENBANK_NAME]";
+    $db_user = "[DATENBANK_NUTZER]";
     $db_pass = "[DATENBANK_PASSWORT]";
-    $db_name = "[DATENBANK_TABELLE]";
+    $db_name = "[DATENBANK_NAME]";
     $db_addr = "[DATENBANK_IP]";
     $db_port = "[DATENBANK_PORT]";
     #####################################
