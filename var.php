@@ -1,10 +1,26 @@
 <?php
+    #####################################
+    ##MySql - Daten wie Benutzername#####
+    ##und Passwort damit man dynamisch###
+    ##anpassen kann wenn sich Daten######
+    ##ändern sollten.####################
+    #####################################
     $db_user = "[DATENBANK_NAME]";
     $db_pass = "[DATENBANK_PASSWORT]";
     $db_name = "[DATENBANK_TABELLE]";
     $db_addr = "[DATENBANK_IP]";
     $db_port = "[DATENBANK_PORT]";
-    $name = "[DIR_FOR_RUN_FILE]";
+    #####################################
+    ##Pfad zur ".run" Datei f&uuml;r ####
+    ##Schleifen o.&auml;. damit man aus##
+    ##diesen "ausbrechen" kann und ######
+    ##diese beenden kann.################
+    #####################################
+    $name = "[DIR_FOR_RUN_FILE].run";
+    #####################################
+    ##Optionale Variablen mit ###########
+    ##voreingestellten Werten############
+    #####################################
     $main_crawler = "web";
     $user_agent = "web_crawler_by_nicoketzer/github";
     $timeout = 20;
