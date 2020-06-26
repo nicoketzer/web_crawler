@@ -7,6 +7,14 @@ $options = array('http'=>array('method'=>"GET", 'headers'=>"User-Agent: " . $use
 $context = stream_context_create($options);
 
 function get_details($url){
+    //Einbinden der db-Variablen
+    global $db_tbl;
+    global $db_tbl_url;
+    global $db_tbl_indexed_last;
+    global $db_tbl_title;
+    global $db_tbl_desc;
+    global $db_tbl_favicon;
+    global $db_tbl_keywords;
     //Einbinden des Favicon - Standart URL&apos;s
     global $favicon_standart_url;
     //Verf&uuml;gbar machen des $context in der Funktion
@@ -168,6 +176,14 @@ function get_details($url){
     return array("title"=>bin2hex($title),"desc"=>bin2hex($description),"favico"=>bin2hex($favico),"keywords"=>bin2hex($keywords));
 }
 function data_crawl(){
+    //Einbinden der db-Variablen
+    global $db_tbl;
+    global $db_tbl_url;
+    global $db_tbl_indexed_last;
+    global $db_tbl_title;
+    global $db_tbl_desc;
+    global $db_tbl_favicon;
+    global $db_tbl_keywords;
     //Einbinden des Hauptmodus
     global $main_crawler;
     //Einbinden des Namen&apos;s des ".run"-Files
@@ -273,6 +289,14 @@ function crawl($url){
 }
 //Funktion die aufgerufen wird wenn meist &uuml;ber web genutzt wird
 function crawler(){
+    //Einbinden der db-Variablen
+    global $db_tbl;
+    global $db_tbl_url;
+    global $db_tbl_indexed_last;
+    global $db_tbl_title;
+    global $db_tbl_desc;
+    global $db_tbl_favicon;
+    global $db_tbl_keywords;
     //SQL Befehl der alle Datens&auml;tze w&auml;hlt die noch nicht ge-crawlt wurde
     $sql = "SELECT * FROM `" . $db_tbl . "` WHERE `" . $db_tbl_indexed_last . "` = '0'";
     //Neues Mysqli-Objekt erstellen
