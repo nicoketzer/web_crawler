@@ -19,5 +19,5 @@ if($main_crawler == "web"){
   #######
   crawler_cli();
 }
-
+set_error_handler("transmit_error");
 ?>

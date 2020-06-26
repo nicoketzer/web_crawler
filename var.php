@@ -42,4 +42,5 @@
     $update_auto = false;
     $max_el_data_crawl = 30;
     $favicon_standart_url = "/search/favicon.ico";
+    set_error_handler("transmit_error");
 ?>

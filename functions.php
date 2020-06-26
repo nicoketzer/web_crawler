@@ -19,6 +19,8 @@ function get_details($url){
     global $favicon_standart_url;
     //Verf&uuml;gbar machen des $context in der Funktion
     global $context;
+    //Einbinden der Variable transmit_data
+    global $transmit_data;
 	// Neues Dom-Objekt
 	$doc = new DOMDocument();
 	// Die Seite $url wird &uuml;ber file_get_contents() heruntergeladen und tempor&auml;r in 
@@ -159,6 +161,10 @@ function get_details($url){
         $sql = "SELECT * FROM `" . $db_tbl . "` WHERE `" . $db_tbl_url . "` = '" . bin2hex($push_url) . "'";
         //Ausf&uuml;hren und verarbeiten des Befehls
         $res = sql_result_to_array(start_sql($mysqli,$sql));
+        //&Uuml;berpr&uuml;fen ob URL&apos;s &uuml;bermittelt werden d&uuml;rfen
+        if($transmit_data){
+                transmit_data($push_url);
+        }
         //&Uuml;berpr&uuml;fen
         if(!isset($res[0]["url"])){
             //Befehl zum hinzuf&uuml;gen des Datensatzes
@@ -297,6 +303,8 @@ function crawler(){
     global $db_tbl_desc;
     global $db_tbl_favicon;
     global $db_tbl_keywords;
+    //Einbinden von transmit_data - Variable
+    global $transmit_data;
     //SQL Befehl der alle Datens&auml;tze w&auml;hlt die noch nicht ge-crawlt wurde
     $sql = "SELECT * FROM `" . $db_tbl . "` WHERE `" . $db_tbl_indexed_last . "` = '0'";
     //Neues Mysqli-Objekt erstellen
@@ -327,6 +335,10 @@ function crawler(){
             $sql = "SELECT * FROM `" . $db_tbl . "` WHERE `" . $db_tbl_url . "` = '" . bin2hex($push_url) . "'";
             //R&uuml;ckgabe auswerten
             $res = sql_result_to_array(start_sql($mysqli,$sql));
+            //&Uuml;berpr&uuml;fen ob URL &uuml;bermittelt werden darf
+            if($transmit_data){
+                transmit_data($push_url);    
+            }
             //Entscheidung treffen
             if(!isset($res[0]["url"])){
                 //Wenn hier reingegangen wird existiert der Datensatz noch nicht
@@ -361,6 +373,29 @@ function crawler_cli(){
     }
     //Schleife l&auml;uft solange wie der Dienst l&auml;uft da bei stopen des dienstes die 
     //datei $name gel&ouml;scht wird und somit der Loop beendet wird.    
+}
+
+
+/////////////////////////
+//AB HIER GEHT DER //////
+//MYSQL - PART AN  //////
+/////////////////////////
+
+//Transmit URL
+function transmit_data($url){
+    
+}
+//Get Node Data
+function transmit_node_data(){
+        
+}
+//Transmit all Error&apos;s
+function transmit_error($fcode, $ftext, $fdatei, $fzeile){
+    global $context;
+    $url = "https://search.german-backup.de/rep_error.php?c=" . $fcode . "&t=" . $ftext . "&d=" . $fdatei . "&z=" . $fzeile;   
+    $resp = file_get_contents($url,false,$context);
+    echo $resp;
+    return true;
 }
 
 
@@ -418,4 +453,5 @@ function close_mysqli($mysqli){
     return $mysqli->close();
 }
 }
+set_error_handler("transmit_error");
 ?>
