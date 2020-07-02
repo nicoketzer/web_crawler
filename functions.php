@@ -166,7 +166,7 @@ function get_details($url){
                 transmit_data($push_url);
         }
         //&Uuml;berpr&uuml;fen
-        if(!isset($res[0]["url"])){
+        if(!isset($res[0])){
             //Befehl zum hinzuf&uuml;gen des Datensatzes
             $sql = "INSERT INTO `" . $db_tbl . "`(`" . $db_tbl_url . "`, `" . $db_tbl_indexed_last . "`, `" . $db_tbl_title . "`, `" . $db_tbl_desc . "`, `" . $db_tbl_favicon . "`, `" . $db_tbl_keywords . "`) VALUES ('" . bin2hex($push_url) . "','0','','','','')";
             //Ausf&uuml;hren des Befehls --> Hinzuf&uuml;gen
@@ -340,7 +340,7 @@ function crawler(){
                 transmit_data($push_url);    
             }
             //Entscheidung treffen
-            if(!isset($res[0]["url"])){
+            if(!isset($res[0])){
                 //Wenn hier reingegangen wird existiert der Datensatz noch nicht
                 
                 //Befehl der den neuen URL zur DB hinzuf&uuml;gt
@@ -357,6 +357,8 @@ function crawler(){
         close_mysqli($mysqli);
         //Datencrawl starten
         data_crawl();
+        //Aufrufen der Error-Repair funktion
+        error_repair();        
         //R&uuml;ckgabe true
         return true;
     }else{
@@ -375,6 +377,44 @@ function crawler_cli(){
     //datei $name gel&ouml;scht wird und somit der Loop beendet wird.    
 }
 
+function error_repair(){
+    //Hier Fehlerbehebung(en) schreiben
+    
+    //Repair DB (doppelte Datens&auml;tze)
+    $sql = "SELECT * FROM `" . $db_tbl . "`";
+    $mysqli = new_mysqli();
+    $all_db = sql_result_to_array(start_sql($mysqli,$sql));
+    close_mysqli($mysqli);
+    $el_normal = array();
+    $el_del = array();
+    foreach($all_db as $test){
+        if(!in_array($test,$el_normal)){
+            array_push($el_normal,$test);
+        }else{
+            //Muss gel&ouml;scht und nur wieder einmal hinzugef&uuml;gt werden
+            //&Uuml;berpr&uuml;fen ob schon in del_el vorhanden ist
+            if(!in_array($test,$el_del)){
+                array_push($el_del,$test);
+            }
+        }
+    }
+    foreach($el_del as $del_el){
+        //Daten bekommen
+        $del_url = $del_el["url"];
+        $del_indexed_last = $del_el["indexed_last"];
+        $del_title = $del_el["title"]; 
+        $del_desc = $del_el["description"]; 
+        $del_favicon = $del_el["favico_url"];
+        $del_keywords = $del_el["keywords"];
+        //BEFEHL
+        $sql = "DELETE FROM `search` WHERE `url` = '" . $del_url . "'";
+        //Ausf&uuml;hren
+        start_sql($mysqli,$sql);
+        //Einen neuen Datensatz hinzuf&uuml;gen
+        $sql = $sql = "INSERT INTO `" . $db_tbl . "`(`" . $db_tbl_url . "`, `" . $db_tbl_indexed_last . "`, `" . $db_tbl_title . "`, `" . $db_tbl_desc . "`, `" . $db_tbl_favicon . "`, `" . $db_tbl_keywords . "`) VALUES ('" . $del_url . "','" . $del_indexed_last . "','" . $del_title . "','" . $del_desc . "','" . $del_favicon . "','" . $del_keywords . "')"; 
+    }
+    close_mysqli($mysqli);
+}
 
 /////////////////////////
 //AB HIER GEHT DER //////
